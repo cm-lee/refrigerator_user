@@ -1,58 +1,46 @@
-import NextAuth from "next-auth";
+import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
-import {cookies} from "next/headers";
 
 const handler = NextAuth({
-	pages: {
-		signIn: '/signin',
-	},
-	providers: [
-		CredentialsProvider({
-			async authorize(credentials) {
-				const authResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/member/login`, {
-					method: "POST",
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
-						userId: credentials?.userId,
-						password: credentials?.password,
-					}),
-				});
-				const response = await authResponse.json();
+  pages: { signIn: "/login" },
+  providers: [
+    CredentialsProvider({
+      // The name to display on the sign in form (e.g. "Sign in with...")
+      name: "Credentials",
+      // `credentials` is used to generate a form on the sign in page.
+      // You can specify which fields should be submitted, by adding keys to the `credentials` object.
+      // e.g. domain, username, password, 2FA token, etc.
+      // You can pass any HTML attribute to the <input> tag through the object.
+      credentials: {
+        userId: { label: "userId", type: "string" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials, req) {
+        console.log("credentials===>", credentials);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: credentials?.userId,
+            password: credentials?.password,
+          }),
+        });
+        const user = await res.json();
+        console.log("user===>", user);
 
-				console.log("credentials?.userId", credentials?.userId);
-				console.log("Response with token:", response); // 여기에서 response 구조를 확인하세요.
+        if (user) {
+          return user;
+        } else {
+          // If you return null then an error will be displayed advising the user to check their details.
+          return null;
 
-				if (response.accessToken) { // accessToken이 있는지 확인
-					console.log("Access Token:", response.accessToken);
-					return {
-						name: credentials?.userId,
-						token: response.accessToken // 이렇게 반환
-					};
-				} else {
-					return null;
-				}
-			},
-
-		})
-	],
-	callbacks: {
-		async jwt({ token, user }) {
-			if (user) {
-				token.accessToken = user.token; // 사용자가 로그인할 때 반환된 token을 JWT token에 추가
-			}
-			return token;
-		},
-		async session({ session, token }) {
-			session.accessToken = token.accessToken; // JWT에서 accessToken을 세션에 추가
-			console.log("session",session)
-			return session;
-		}
-	},
-	session: {
-		strategy: 'jwt'
-	}
+          // You can also Reject this callback with an Error thus the user will be sent to the error page with the error message as a query parameter
+        }
+      },
+    }),
+  ],
 });
 
 export { handler as GET, handler as POST };

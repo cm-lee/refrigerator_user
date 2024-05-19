@@ -58,7 +58,7 @@ export default function JoinForm() {
       console.log(res);
 
       alert(`${formData.userName}님, 회원 가입이 완료되었어요!\n 로그인하여 나만의 냉장고를 채워 보아요.`);
-      router.push("/signin");
+      router.push("/login");
     } catch (error) {
       console.error(error);
     }
